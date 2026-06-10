@@ -113,10 +113,12 @@ body.sheet-open{position:fixed;width:100%;overflow:hidden;}
 .sheet-grab{flex-shrink:0;position:relative;cursor:grab;touch-action:none;}
 .sheet-grab:active{cursor:grabbing;}
 .sheet-handle{width:38px;height:5px;background:var(--sep-strong);border-radius:3px;margin:8px auto 2px;}
-.sheet-close{position:absolute;top:2px;right:6px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--text-2);font-size:20px;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent;z-index:2;}
+.sheet-close{position:absolute;top:4px;right:8px;width:44px;height:44px;display:none;align-items:center;justify-content:center;border:none;background:none;color:var(--text-2);font-size:20px;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent;z-index:2;}
 .sheet-close:active{background:var(--card-press);}
+.sheet.full .sheet-close{display:flex;} /* フルモーダル時のみ閉じるボタン表示 */
 .sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
-.panel-head{display:flex;align-items:center;justify-content:space-between;padding:2px 8px 8px;border-bottom:0.5px solid var(--sep);}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px 12px;border-bottom:0.5px solid var(--sep);}
+.sheet.full .panel-head{padding-top:38px;} /* 閉じるボタンと矢印が重ならないよう余白を確保 */
 /* 買い物リストのコーナー（カテゴリ）見出し */
 .shop-cat{font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 2px;display:flex;align-items:center;gap:5px;letter-spacing:0.02em;}
 .shop-cat:first-of-type{margin-top:4px;}
@@ -408,6 +410,7 @@ function toggleStaple(key,d,i){
 }
 function switchDTab(tabId,groupId){
   document.querySelectorAll(`[data-group="${groupId}"]`).forEach(el=>{el.classList.toggle("on",el.dataset.tab===tabId);});
+  updateSheetMode(); // タブ切替で高さが変わるので再判定（買い物リスト=フル等）
 }
 
 function renderDinner(key,d){
@@ -458,6 +461,15 @@ function openPanel(key,d){
   document.getElementById("panel-body").innerHTML=isHol?renderHoliday(m.holidays[d]):isSun?renderSunday(key,d):renderDinner(key,d);
   document.querySelector(".sheet-body").scrollTop=0;
   openSheet();
+  updateSheetMode();
+}
+/* シートの高さでフル/ハーフを判定し、フル時だけ .full（＝閉じるボタン表示） */
+function updateSheetMode(){
+  const sheet=document.getElementById("pn");
+  requestAnimationFrame(()=>{
+    const full=sheet.offsetHeight>=window.innerHeight*0.7;
+    sheet.classList.toggle("full",full);
+  });
 }
 
 /* ===== ボトムシート開閉 & ドラッグ ===== */
@@ -474,6 +486,7 @@ function openSheet(){
 function closeSheet(){
   document.getElementById("scrim").classList.remove("on");
   document.getElementById("pn").classList.remove("on");
+  document.getElementById("pn").classList.remove("full");
   document.querySelectorAll(".cell").forEach(c=>c.classList.remove("sel"));
   if(document.body.classList.contains("sheet-open")){
     document.body.classList.remove("sheet-open");
