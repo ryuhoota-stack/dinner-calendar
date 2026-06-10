@@ -106,13 +106,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   background:var(--card);border-radius:18px 18px 0 0;box-shadow:var(--shadow-lg);
   z-index:50;display:flex;flex-direction:column;max-height:88vh;
   transform:translateY(110%);transition:transform .32s cubic-bezier(.32,.72,0,1);
-  padding-bottom:env(safe-area-inset-bottom);touch-action:none;}
+  padding-bottom:env(safe-area-inset-bottom);}
 .sheet.on{transform:translateY(0);}
-.sheet-grab{flex-shrink:0;cursor:grab;}
+/* 背景スクロールロック中もシートは画面下部に固定 */
+body.sheet-open{position:fixed;width:100%;overflow:hidden;}
+.sheet-grab{flex-shrink:0;position:relative;cursor:grab;touch-action:none;}
 .sheet-grab:active{cursor:grabbing;}
 .sheet-handle{width:38px;height:5px;background:var(--sep-strong);border-radius:3px;margin:8px auto 2px;}
+.sheet-close{position:absolute;top:2px;right:6px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--text-2);font-size:20px;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent;z-index:2;}
+.sheet-close:active{background:var(--card-press);}
 .sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
-.panel-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;border-bottom:0.5px solid var(--sep);}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:2px 8px 8px;border-bottom:0.5px solid var(--sep);}
+/* 買い物リストのコーナー（カテゴリ）見出し */
+.shop-cat{font-size:12px;font-weight:700;color:var(--accent);margin:16px 0 2px;display:flex;align-items:center;gap:5px;letter-spacing:0.02em;}
+.shop-cat:first-of-type{margin-top:4px;}
 .nav-arrow{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--blue);font-size:22px;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent;flex-shrink:0;}
 .nav-arrow:active{background:var(--card-press);}
 .nav-arrow:disabled{color:var(--text-3);opacity:0.4;cursor:default;}
@@ -184,6 +191,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 <div class="sheet" id="pn" role="dialog" aria-modal="true" aria-labelledby="ptitle">
   <div class="sheet-grab" id="grab">
     <div class="sheet-handle"></div>
+    <button class="sheet-close" id="sheetClose" aria-label="閉じる"><i class="ti ti-x" aria-hidden="true"></i></button>
     <div class="panel-head">
       <button class="nav-arrow" id="prevDay" aria-label="前の日" onclick="ENGINE.go(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
       <div class="ptitle" id="ptitle"></div>
@@ -340,6 +348,23 @@ function closeModal(e){
     document.getElementById("overlay").classList.remove("on");
 }
 
+/* スーパーのコーナー順に並べるカテゴリ定義（上から回る順）。
+   item に c:"野菜" 等を指定すれば優先。未指定なら名前から自動判定。 */
+const SHOP_CATS=[
+  {key:"野菜・果物", icon:"ti-carrot", re:/(野菜|じゃがいも|玉ねぎ|たまねぎ|ねぎ|長ねぎ|万能ねぎ|にんじん|大根|キャベツ|白菜|もやし|きゅうり|ピーマン|パプリカ|なす|ナス|トマト|レタス|ほうれん草|こまつな|小松菜|ブロッコリー|ごぼう|れんこん|かぼちゃ|さつまいも|きのこ|しめじ|えのき|しいたけ|まいたけ|エリンギ|にんにく|しょうが|生姜|レモン|バナナ|みかん|りんご|果物|アボカド|豆苗|ニラ|にら|セロリ|オクラ|とうもろこし|枝豆)/},
+  {key:"鮮魚", icon:"ti-fish", re:/(魚|鮭|サケ|鯖|さば|サバ|ぶり|ブリ|かじき|カジキ|たら|タラ|さわら|サワラ|あじ|アジ|いわし|イワシ|まぐろ|マグロ|さんま|サンマ|ほっけ|干物|切り身|えび|エビ|いか|イカ|たこ|タコ|あさり|しじみ|しらす|刺身)/},
+  {key:"精肉", icon:"ti-meat", re:/(肉|鶏|豚|牛|ひき肉|挽肉|バラ|もも|ロース|ささみ|むね|手羽|ハム|ベーコン|ウインナー|ソーセージ)/},
+  {key:"豆腐・大豆製品", icon:"ti-cheese", re:/(豆腐|油揚げ|厚揚げ|納豆|がんもどき|おから|高野豆腐)/},
+  {key:"卵・乳製品", icon:"ti-egg", re:/(卵|たまご|牛乳|バター|チーズ|ヨーグルト|生クリーム|牛乳パック)/},
+  {key:"パン・麺・主食", icon:"ti-bread", re:/(米|パン|食パン|バゲット|うどん|そば|スパゲッティ|パスタ|焼きそば|中華麺|ラーメン|そうめん|もち|餅)/},
+  {key:"乾物・缶詰・常温", icon:"ti-package", re:/(缶|わかめ|海苔|のり|乾燥|ひじき|切り干し|春雨|ルー|ルウ|だしパック|乾麺)/},
+  {key:"調味料", icon:"ti-bottle", re:/(しょうゆ|醤油|みそ|味噌|みりん|酢|砂糖|塩|こしょう|コショウ|油|ごま油|サラダ油|オリーブ|ケチャップ|ソース|ポン酢|めんつゆ|だし|マヨ|片栗粉|小麦粉|カレー粉|甜麺醤|豆板醤|オイスター|紅生姜|わさび|からし|コンソメ|鶏がら)/},
+];
+function shopCatIndex(item){
+  if(item.c){const i=SHOP_CATS.findIndex(c=>c.key===item.c);if(i>=0)return i;}
+  for(let i=0;i<SHOP_CATS.length;i++){if(SHOP_CATS[i].re.test(item.n))return i;}
+  return SHOP_CATS.length; // その他
+}
 function shopListHTML(key,d){
   const m=MONTHS[key];const data=m.SHOP_ITEMS[d];if(!data)return"";
   const items=data.items;const isPapa=data.papa;
@@ -348,9 +373,17 @@ function shopListHTML(key,d){
   let h="";
   if(isPapa)h+=`<div class="shop-papa"><i class="ti ti-users" style="font-size:16px" aria-hidden="true"></i>パパと一緒に行く日</div>`;
   h+=`<div class="slt">買い物リスト</div><div class="check-progress" id="prog-${d}">${done}/${total} 完了</div>`;
-  items.forEach((item,i)=>{
-    const cc=checkState[sk][i]?"checked":"";
-    h+=`<div class="check-item ${cc}" id="ci-${d}-${i}"><input type="checkbox" id="cb-${d}-${i}" ${cc} onchange="toggleItem('${key}',${d},${i})"><label for="cb-${d}-${i}">${item.n}${item.h?'<span class="heavy-badge">重め</span>':''}</label><span class="check-qty">${item.q||""}</span></div>`;
+  // コーナー（カテゴリ）ごとにグルーピング。元のindexは保持してチェック状態を維持
+  const groups={};
+  items.forEach((item,i)=>{const gi=shopCatIndex(item);(groups[gi]=groups[gi]||[]).push({item,i});});
+  Object.keys(groups).map(Number).sort((a,b)=>a-b).forEach(gi=>{
+    const cat=SHOP_CATS[gi];
+    const label=cat?cat.key:"その他";const icon=cat?cat.icon:"ti-shopping-cart";
+    h+=`<div class="shop-cat"><i class="ti ${icon}" aria-hidden="true"></i>${label}</div>`;
+    groups[gi].forEach(({item,i})=>{
+      const cc=checkState[sk][i]?"checked":"";
+      h+=`<div class="check-item ${cc}" id="ci-${d}-${i}"><input type="checkbox" id="cb-${d}-${i}" ${cc} onchange="toggleItem('${key}',${d},${i})"><label for="cb-${d}-${i}">${item.n}${item.h?'<span class="heavy-badge">重め</span>':''}</label><span class="check-qty">${item.q||""}</span></div>`;
+    });
   });
   h+=`<div class="staple-section"><div class="staple-label">常備品（切らしたら補充）</div>`;
   const stk=`${key}_staple_${d}`;if(!checkState[stk])checkState[stk]={};
@@ -428,7 +461,13 @@ function openPanel(key,d){
 }
 
 /* ===== ボトムシート開閉 & ドラッグ ===== */
+let _savedScroll=0;
 function openSheet(){
+  if(!document.body.classList.contains("sheet-open")){
+    _savedScroll=window.scrollY;
+    document.body.style.top=`-${_savedScroll}px`;
+    document.body.classList.add("sheet-open"); // 背景スクロールをロック（シートを画面下部に固定）
+  }
   document.getElementById("scrim").classList.add("on");
   document.getElementById("pn").classList.add("on");
 }
@@ -436,6 +475,11 @@ function closeSheet(){
   document.getElementById("scrim").classList.remove("on");
   document.getElementById("pn").classList.remove("on");
   document.querySelectorAll(".cell").forEach(c=>c.classList.remove("sel"));
+  if(document.body.classList.contains("sheet-open")){
+    document.body.classList.remove("sheet-open");
+    document.body.style.top="";
+    window.scrollTo(0,_savedScroll);
+  }
 }
 (function initSheetDrag(){
   const sheet=document.getElementById("pn");
@@ -445,6 +489,10 @@ function closeSheet(){
   const onMove=y=>{if(!dragging)return;dy=y-startY;if(dy<0)dy=0;sheet.style.transform=`translateY(${dy}px)`;};
   const onUp=()=>{if(!dragging)return;dragging=false;sheet.style.transition="";sheet.style.transform="";
     if(dy>110)closeSheet();}; // 下方向に十分スワイプしたら最小化（閉じる）
+  // 閉じるボタン（ドラッグ開始を抑止して確実にタップで閉じる）
+  const closeBtn=document.getElementById("sheetClose");
+  closeBtn.addEventListener("pointerdown",e=>e.stopPropagation());
+  closeBtn.addEventListener("click",e=>{e.stopPropagation();closeSheet();});
   grab.addEventListener("touchstart",e=>onDown(e.touches[0].clientY),{passive:true});
   window.addEventListener("touchmove",e=>{if(dragging){onMove(e.touches[0].clientY);}},{passive:true});
   window.addEventListener("touchend",onUp);
