@@ -99,10 +99,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .ms-off{font-size:9px;color:var(--text-3);}
 .ms-hol{font-size:9px;color:var(--sun);font-weight:600;}
 
-/* 詳細パネル */
-.panel{display:none;margin-top:14px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);}
-.panel.on{display:block;}
-.panel-head{display:flex;align-items:center;justify-content:space-between;padding:8px 8px;border-bottom:0.5px solid var(--sep);}
+/* 詳細＝ボトムシート（Google Map風ハーフモーダル） */
+.sheet-scrim{position:fixed;inset:0;background:transparent;z-index:40;display:none;}
+.sheet-scrim.on{display:block;}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;width:100%;max-width:480px;
+  background:var(--card);border-radius:18px 18px 0 0;box-shadow:var(--shadow-lg);
+  z-index:50;display:flex;flex-direction:column;max-height:88vh;
+  transform:translateY(110%);transition:transform .32s cubic-bezier(.32,.72,0,1);
+  padding-bottom:env(safe-area-inset-bottom);touch-action:none;}
+.sheet.on{transform:translateY(0);}
+.sheet-grab{flex-shrink:0;cursor:grab;}
+.sheet-grab:active{cursor:grabbing;}
+.sheet-handle{width:38px;height:5px;background:var(--sep-strong);border-radius:3px;margin:8px auto 2px;}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px;border-bottom:0.5px solid var(--sep);}
 .nav-arrow{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:none;background:none;color:var(--blue);font-size:22px;cursor:pointer;border-radius:50%;-webkit-tap-highlight-color:transparent;flex-shrink:0;}
 .nav-arrow:active{background:var(--card-press);}
 .nav-arrow:disabled{color:var(--text-3);opacity:0.4;cursor:default;}
@@ -168,12 +178,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div class="li"><span class="bq q">時短</span></div>
   </div>
   <div class="g7" id="gr"></div>
-  <div class="panel" id="pn">
+</div>
+
+<div class="sheet-scrim" id="scrim" onclick="closeSheet()"></div>
+<div class="sheet" id="pn" role="dialog" aria-modal="true" aria-labelledby="ptitle">
+  <div class="sheet-grab" id="grab">
+    <div class="sheet-handle"></div>
     <div class="panel-head">
       <button class="nav-arrow" id="prevDay" aria-label="前の日" onclick="ENGINE.go(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
       <div class="ptitle" id="ptitle"></div>
       <button class="nav-arrow" id="nextDay" aria-label="次の日" onclick="ENGINE.go(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
     </div>
+  </div>
+  <div class="sheet-body">
     <div id="sun-msg-area"></div>
     <div id="panel-body"></div>
   </div>
@@ -246,8 +263,8 @@ const ENGINE={
     this.active=key;
     document.querySelectorAll("#seg button").forEach(b=>b.classList.toggle("on",b.dataset.key===key));
     renderGrid(key);
-    // パネルが開いていて、選択日が別の月なら閉じる
-    if(this.cur&&this.cur.key!==key){document.getElementById("pn").classList.remove("on");}
+    // シートが開いていて、選択日が別の月なら閉じる
+    if(this.cur&&this.cur.key!==key)closeSheet();
   },
   open(key,day){
     if(key!==this.active)this.show(key);
@@ -266,7 +283,6 @@ const ENGINE={
     if(ni<0||ni>=this.order.length)return;
     const t=this.order[ni];
     this.open(t.key,t.day);
-    document.getElementById("pn").scrollIntoView({behavior:"smooth",block:"nearest"});
   },
   updateArrows(){
     const i=this.order.findIndex(o=>o.key===this.cur.key&&o.day===this.cur.day);
@@ -407,10 +423,63 @@ function openPanel(key,d){
   document.getElementById("ptitle").textContent=`${m.month}月${d}日（${DOW[dow]}）`;
   document.getElementById("sun-msg-area").innerHTML="";
   document.getElementById("panel-body").innerHTML=isHol?renderHoliday(m.holidays[d]):isSun?renderSunday(key,d):renderDinner(key,d);
-  document.getElementById("pn").classList.add("on");
+  document.querySelector(".sheet-body").scrollTop=0;
+  openSheet();
 }
 
-window.addEventListener("DOMContentLoaded",()=>ENGINE.init());
+/* ===== ボトムシート開閉 & ドラッグ ===== */
+function openSheet(){
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("pn").classList.add("on");
+}
+function closeSheet(){
+  document.getElementById("scrim").classList.remove("on");
+  document.getElementById("pn").classList.remove("on");
+  document.querySelectorAll(".cell").forEach(c=>c.classList.remove("sel"));
+}
+(function initSheetDrag(){
+  const sheet=document.getElementById("pn");
+  const grab=document.getElementById("grab");
+  let startY=0,dy=0,dragging=false;
+  const onDown=y=>{startY=y;dy=0;dragging=true;sheet.style.transition="none";};
+  const onMove=y=>{if(!dragging)return;dy=y-startY;if(dy<0)dy=0;sheet.style.transform=`translateY(${dy}px)`;};
+  const onUp=()=>{if(!dragging)return;dragging=false;sheet.style.transition="";sheet.style.transform="";
+    if(dy>110)closeSheet();}; // 下方向に十分スワイプしたら最小化（閉じる）
+  grab.addEventListener("touchstart",e=>onDown(e.touches[0].clientY),{passive:true});
+  window.addEventListener("touchmove",e=>{if(dragging){onMove(e.touches[0].clientY);}},{passive:true});
+  window.addEventListener("touchend",onUp);
+  grab.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")onDown(e.clientY);});
+  window.addEventListener("pointermove",e=>{if(dragging&&e.pointerType!=="touch")onMove(e.clientY);});
+  window.addEventListener("pointerup",e=>{if(e.pointerType!=="touch")onUp();});
+  // Escキーでも閉じる
+  window.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();});
+})();
+
+/* ===== 被りチェック（毎ロード時に自動実行・コンソールに警告） =====
+   保育園の昼ご飯(n)と夕食メイン(m)が同カテゴリ（魚/鶏/豚/牛/カレー）なら警告。
+   毎月データを差し替えたら DevTools コンソールで ⚠️ が出ていないか必ず確認すること。 */
+function category(txt){
+  if(!txt)return null;
+  if(/カレー/.test(txt))return"カレー";
+  if(/(魚|鮭|さけ|サケ|鯖|さば|サバ|ぶり|ブリ|かじき|カジキ|たら|タラ|さわら|サワラ|あじ|アジ|いわし|イワシ|まぐろ|マグロ|ツナ|ホイル焼き|ムニエル|塩焼き|照り焼き.*魚)/.test(txt))return"魚";
+  if(/(鶏|チキン|から揚げ|唐揚げ|焼き鳥|親子)/.test(txt))return"鶏";
+  if(/(豚|ポーク|生姜焼き|豚汁|回鍋肉|とんかつ|ジューシー)/.test(txt))return"豚";
+  if(/(牛|ビーフ|牛丼|すき焼き)/.test(txt))return"牛";
+  return null;
+}
+function checkClashes(){
+  let n=0;
+  Object.values(MONTHS).forEach(m=>{
+    Object.keys(m.D).forEach(d=>{
+      const info=m.D[d];const cd=category(info.m),cn=category(info.n);
+      if(cd&&cn&&cd===cn){n++;console.warn(`⚠️ 被りの可能性: ${m.year}/${m.month}/${d} 夕食「${info.m}」× 保育園「${info.n}」(${cd})`);}
+    });
+  });
+  if(n===0)console.info("✅ 被りチェック: 問題なし");
+  else console.warn(`⚠️ 被りの可能性が ${n}件 あります。データを見直してください。`);
+}
+
+window.addEventListener("DOMContentLoaded",()=>{ENGINE.init();checkClashes();});
 </script>
 
 <!-- 月データ（毎月ここに1行追加するだけ。UI は触らない） -->
