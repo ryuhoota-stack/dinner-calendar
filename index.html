@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>6月 夕食カレンダー</title>
+<title>5月 夕食カレンダー</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 :root{
@@ -38,12 +38,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .cell.sh{background:#E1F5EE;}
 .cell.sel{border:2px solid #1D9E75;}
 .cell.csu .dn{color:#993C1D;}
+.cell.hol{background:var(--bg-secondary);}
 .dn{font-size:11px;font-weight:500;color:var(--text-secondary);margin-bottom:2px;display:flex;align-items:center;gap:2px;line-height:1;}
 .sp{width:5px;height:5px;border-radius:50%;background:#1D9E75;display:inline-block;flex-shrink:0;}
 .mm{font-size:9px;font-weight:500;color:var(--text-primary);line-height:1.25;margin-bottom:1px;word-break:break-all;}
 .bqs{display:block;font-size:8px;padding:1px 3px;border-radius:4px;margin-top:2px;width:fit-content;}
 .bqs.p{background:#FAEEDA;color:#633806;}.bqs.q{background:#E1F5EE;color:#085041;}
 .ms-off{font-size:9px;color:var(--text-tertiary);}
+.ms-hol{font-size:9px;color:#993C1D;}
 .panel{display:none;margin-top:10px;background:var(--bg-primary);border:0.5px solid var(--border-light);border-radius:12px;overflow:hidden;}
 .panel.on{display:block;}
 .panel-head{padding:14px 16px 12px;border-bottom:0.5px solid var(--border-light);}
@@ -70,6 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .sun-recipe-note{font-size:14px;color:var(--text-secondary);margin-bottom:10px;line-height:1.5;}
 .sun-recipe-sel select{font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid var(--border-mid);background:var(--bg-primary);color:var(--text-primary);width:100%;margin-bottom:10px;min-height:44px;}
 .shop-wrap{padding:14px 16px;}
+.shop-papa{font-size:13px;color:#085041;background:#E1F5EE;border-radius:6px;padding:6px 12px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .slt{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:8px;}
 .check-progress{font-size:13px;color:#085041;background:#E1F5EE;border-radius:6px;padding:6px 12px;margin-bottom:12px;display:inline-block;}
 .check-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid var(--border-light);min-height:44px;}
@@ -78,6 +81,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .check-item label{font-size:15px;color:var(--text-primary);cursor:pointer;flex:1;line-height:1.4;}
 .check-item.checked label{color:var(--text-tertiary);text-decoration:line-through;}
 .check-qty{font-size:13px;color:var(--text-secondary);white-space:nowrap;}
+.heavy-badge{font-size:11px;padding:1px 5px;border-radius:5px;background:#E6F1FB;color:#0C447C;white-space:nowrap;margin-left:4px;}
 .staple-section{margin-top:16px;padding-top:12px;border-top:0.5px solid var(--border-light);}
 .staple-label{font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:6px;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:flex-end;justify-content:center;}
@@ -97,7 +101,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 </head>
 <body>
 <div class="container">
-  <h1 class="ttl">6月 夕食カレンダー</h1>
+  <h1 class="ttl">5月 夕食カレンダー</h1>
   <div class="leg">
     <div class="li"><div class="ldot"></div>買い物日</div>
     <div class="li"><span class="bq p">作り置き</span></div>
@@ -125,74 +129,127 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 <script>
 const DOW=["日","月","火","水","木","金","土"];
 const SUN_MSGS=["今週もお疲れさまでした！日曜日はゆっくり休みましょう。","1週間頑張りましたね。今日はのんびり過ごしてください。","お疲れさまでした。日曜日は家族でゆっくりとした時間を。","今週もお疲れさまでした。今日くらいはゆっくり休んでください。","1ヶ月お疲れさまでした！しっかり休んで英気を養いましょう。"];
+
+// GW + 振替休日（5/3日曜は通常処理、4月5火・6水が祝日）
+const HOL=new Set([4,5,6]);
+
+// 夕食データ（n=保育園の昼ご飯、被り防止用）
 const D={
-  1:{m:"肉じゃが",s:"きゅうりの浅漬け・ご飯",n:"肉豆腐・ちんすこう・みそ汁",t:"じゃがいも多めに茹でて翌日サラダに流用",b:"p"},
-  2:{m:"鮭の塩焼き",s:"ほうれん草のお浸し・みそ汁・ご飯",n:"魚のマリネソース・粉ふきいも",t:"鮭は多めに焼いて翌朝にも",b:"q"},
-  3:{m:"豚の生姜焼き",s:"キャベツの千切り・たまごスープ・ご飯",n:"ジューシーメー・かぼちゃのサラダ",t:"タレは多めに作り冷蔵保存",b:"q"},
-  4:{m:"チキンソテー",s:"ポテトサラダ・スープ・ご飯",n:"チキンチャップ・ナムル",t:"鶏肉大きめに焼いて翌日サラダチキンに",b:"p"},
-  5:{m:"麻婆豆腐",s:"わかめスープ・ご飯",n:"かじきの立田焼き・おかか和え",t:"辛さ控えめにすれば翌朝も食べやすい",b:"q"},
-  6:{m:"豚汁＋焼き魚",s:"ほうれん草のごまあえ・ご飯",n:"焼き鳥丼・スープ",t:"豚汁は多めに→翌朝うどんに",b:"p"},
-  8:{m:"牛肉と野菜炒め",s:"冷奴・みそ汁・ご飯",n:"豚肉のパイナップルソース焼き",t:"もやし・ピーマンは安価。多めに炒めて弁当にも",b:"q"},
-  9:{m:"豆腐ハンバーグ",s:"コーンスープ・サラダ・ご飯",n:"お好み焼き風卵焼き",t:"豆腐入りでかさ増し。多めに作って冷凍保存可",b:"p"},
-  10:{m:"カレー",s:"福神漬け・サラダ",n:"カレーライス・トマトの甘酢和え",t:"2日分作れば翌日楽",b:"p"},
-  11:{m:"カレーうどん",s:"きゅうりのごまあえ・ゆで卵",n:"ハンバーグ・にんじん甘煮",t:"昨日のカレーにうどんを入れるだけ",b:"q"},
-  12:{m:"魚のムニエル",s:"ブロッコリーのおかか和え・ご飯",n:"魚の塩麹焼き・のりサラダ",t:"ブロッコリーはまとめて茹でて数日使い回し",b:"q"},
-  13:{m:"焼きそば",s:"もやしのナムル",n:"クリームコーンスパゲッティ",t:"野菜を一気に消費できるメニュー",b:"q"},
-  15:{m:"親子丼",s:"みそ汁・漬物",n:"豚肉のスタミナ焼き丼",t:"丼なので洗い物少ない",b:"q"},
-  16:{m:"豚バラ大根煮物",s:"ほうれん草のお浸し・ご飯",n:"魚のチーズパン粉焼き",t:"翌日も美味しい",b:"p"},
-  17:{m:"鶏の唐揚げ",s:"キャベツの千切り・ポテトサラダ",n:"かぼちゃのサラダ・わかめスープ",t:"下味をつけて冷凍しておけば当日揚げるだけ",b:"p"},
-  18:{m:"チャーハン",s:"中華スープ・冷奴",n:"チキンチャップ・ベイクドポテト",t:"冷凍ご飯で作れる時短メニュー",b:"q"},
-  19:{m:"サバの味噌煮",s:"ほうれん草のお浸し・ご飯",n:"かじきの立田焼き",t:"サバ缶なら5分で完成",b:"q"},
-  20:{m:"豚しゃぶサラダ",s:"焼きおにぎり・わかめスープ",n:"焼き鳥丼・スープ",t:"火を使う時間が短い夏向け",b:"q"},
-  22:{m:"ミートソースパスタ",s:"サラダ・スープ",n:"豚肉のパイナップルソース焼き",t:"ミートソースは多めに冷凍保存",b:"p"},
-  23:{m:"鶏の甘辛炒め",s:"もやしスープ・ご飯",n:"ツナおにぎり",t:"甘辛タレはしょうゆ・みりん・砂糖で簡単",b:"q"},
-  24:{m:"あんかけ豆腐丼",s:"きゅうりの浅漬け・スープ",n:"カレーライス・トマトの甘酢和え",t:"片栗粉あんかけでボリュームアップ",b:"q"},
-  25:{m:"豚キムチ炒め",s:"ご飯・わかめスープ・冷奴",n:"ハンバーグ・チャプチェ",t:"キムチは常備しておくと便利",b:"q"},
-  26:{m:"ぶり大根",s:"ほうれん草のごまあえ・みそ汁",n:"魚の塩麹焼き・のりサラダ",t:"翌日の方が味が染みて美味しい",b:"p"},
-  27:{m:"オムライス",s:"コンソメスープ・サラダ",n:"クリームコーンスパゲッティ",t:"残りご飯の消費に最適",b:"q"},
-  29:{m:"豚汁定食",s:"焼き魚・きゅうりの浅漬け",n:"肉豆腐・きゅうりのごま油あえ",t:"豚汁は翌日の昼も使える",b:"p"},
-  30:{m:"鶏ときのこのクリーム煮",s:"バゲット or ご飯・サラダ",n:"魚のマリネソース",t:"牛乳で生クリーム代用するとコスト半分",b:"q"},
+  1:{m:"鯖の竜田揚げ",s:"ご飯・きのこのみそ汁",n:"豚肉の生姜焼き・野菜炒め・みそ汁",t:"鯖は片栗粉をまぶして揚げるだけ。冷めても美味しい",b:"q"},
+  7:{m:"鮭のホイル焼き",s:"ご飯・豆腐のみそ汁・もやしの和え物",n:"豚丼・わかめサラダ・清汁",t:"ホイルで包んで10分蒸し焼き。洗い物が少なくて楽",b:"q"},
+  8:{m:"鶏の照り焼き",s:"ご飯・キャベツの千切り・みそ汁",n:"さわらの魚田・おかか和え・のっぺい汁",t:"多めに作って翌週のお弁当にも使える定番おかず",b:"p"},
+  11:{m:"鶏肉のトマト煮",s:"パスタ・グリーンサラダ",n:"じゃんじゃん豆腐・きゅうりの甘酢漬け・みそ汁",t:"月曜多めに仕込んで冷凍すると翌週楽。パスタにも合う",b:"p"},
+  12:{m:"豚肉と野菜の炒め物",s:"ご飯・わかめスープ",n:"しらす入り卵焼き・わかめスープ",t:"もやし・キャベツ・にんじんで野菜たっぷり。5分で完成",b:"q"},
+  13:{m:"麻婆豆腐",s:"ご飯・きゅうりの浅漬け",n:"魚ステーキ・スープ・トマト",t:"豆板醤と甜面醤で本格味。豆腐は絹ごしで滑らか食感",b:"q"},
+  14:{m:"豚しゃぶサラダ",s:"冷凍うどん・わかめスープ",n:"ハヤシライス・和風サラダ",t:"豚薄切りを茹でてポン酢でさっぱり。夏に向けた時短メニュー",b:"q"},
+  15:{m:"豚の生姜焼き",s:"ご飯・きゅうりの浅漬け・みそ汁",n:"魚の照り焼き・おひたし・豚汁",t:"玉ねぎたっぷりで甘みUP。作り置きしてお弁当にも",b:"p"},
+  18:{m:"タラのムニエル",s:"ご飯・コーンスープ・グリーンサラダ",n:"野菜炒め・みそ汁",t:"バターとレモンで上品な味。タラは安くて高タンパクで優秀",b:"q"},
+  19:{m:"豚のみそ炒め",s:"ご飯・えのきのみそ汁",n:"鶏肉の酢じょうゆ煮・ゆで野菜・みそ汁",t:"みそ・みりん・酒で簡単タレ。キャベツ一緒に炒めてかさ増し",b:"q"},
+  20:{m:"鶏肉のカレー炒め",s:"ご飯・サラダ",n:"魚のトマトソースがけ・ゆでブロッコリー・コーンスープ",t:"カレー粉で下味。鶏もも肉で食べ応えあり。水曜補充買いの日",b:"q"},
+  21:{m:"鮭とじゃがいものグラタン",s:"パン・グリーンサラダ",n:"（献立詳細不明）",t:"ホワイトソースは市販品でOK。前日に仕込んでおけると楽",b:"p"},
+  22:{m:"豚バラと白菜の重ね鍋",s:"ご飯・ポン酢",n:"（献立詳細不明）",t:"交互に重ねて蒸すだけ。白菜から出るだしで旨みたっぷり",b:"q"},
+  25:{m:"カジキのソテー",s:"ご飯・野菜スープ・冷奴",n:"（献立詳細不明）",t:"カジキはあっさり白身。バター醤油でシンプルが一番美味しい",b:"q"},
+  26:{m:"豚の角煮",s:"ご飯・冷奴・みそ汁",n:"（献立詳細不明）",t:"前日に作ると翌日さらに味がしみて美味しい。多めに仕込む",b:"p"},
+  27:{m:"鶏肉のクリーム煮",s:"ご飯・サラダ",n:"（献立詳細不明）",t:"生クリーム少量でOK。じゃがいも・にんじん入りで満足感◎",b:"p"},
+  28:{m:"鮭のちゃんちゃん焼き",s:"ご飯・みそ汁",n:"（献立詳細不明）",t:"みそ・みりん・砂糖でタレを作ってフライパンで蒸し焼きに",b:"q"},
+  29:{m:"鶏のから揚げ",s:"ご飯・キャベツの千切り・みそ汁",n:"（献立詳細不明）",t:"下味をつけて冷凍しておくと揚げるだけ。週末前に多め作成",b:"p"},
 };
-const SH=new Set([7,10,14,17,21,24,28]);
+
+// 買い物日（日曜：重いもの、水曜：軽い補充）
+const SH=new Set([10,13,17,20,24,27,31]);
+
 const SHOP_ITEMS={
-  7:[{n:"牛こま",q:"250g"},{n:"豚ひき肉",q:"300g"},{n:"豆腐",q:"2丁"},{n:"白身魚",q:"2切れ"},{n:"豚こま",q:"200g"},{n:"ブロッコリー",q:"1株"},{n:"もやし",q:"2袋"},{n:"ピーマン",q:"4個"},{n:"キャベツ",q:"1/2玉"},{n:"焼きそば麺",q:"2玉"},{n:"バター",q:"1個"},{n:"コーン缶",q:"1缶"},{n:"カレールー",q:"1箱"},{n:"鶏もも",q:"400g"},{n:"にんじん",q:"2本"},{n:"たまねぎ",q:"3個"},{n:"じゃがいも",q:"4個"}],
-  10:[{n:"うどん（冷凍）",q:"2玉"},{n:"卵",q:"6個"},{n:"ブロッコリー",q:"補充"}],
-  14:[{n:"鶏もも",q:"600g"},{n:"豚バラ",q:"200g"},{n:"豚ロース薄切り",q:"250g"},{n:"大根",q:"1/2本"},{n:"じゃがいも",q:"3個"},{n:"ほうれん草",q:"1束"},{n:"レタス",q:"1/2玉"},{n:"トマト",q:"2個"},{n:"えのき",q:"1袋"},{n:"ねぎ",q:"1本"},{n:"サバ缶",q:"2缶"},{n:"ポン酢",q:"1本"},{n:"しょうが",q:"1かけ"}],
-  17:[{n:"卵",q:"補充"},{n:"ハム",q:"1パック"},{n:"ピーマン",q:"補充"},{n:"キャベツ",q:"補充"}],
-  21:[{n:"豚ひき肉",q:"200g"},{n:"鶏もも",q:"600g"},{n:"豚こま",q:"200g"},{n:"ぶり切り身",q:"2切れ"},{n:"豆腐",q:"2丁"},{n:"トマト缶",q:"1缶"},{n:"スパゲッティ",q:"200g"},{n:"大根",q:"1/2本"},{n:"えのき",q:"1袋"},{n:"しめじ",q:"1袋"},{n:"ほうれん草",q:"1束"},{n:"キムチ",q:"1袋"},{n:"牛乳",q:"1本"}],
-  24:[{n:"片栗粉",q:"補充"},{n:"卵",q:"補充"},{n:"ねぎ",q:"補充"}],
-  28:[{n:"豚バラ",q:"200g"},{n:"ごぼう",q:"1本"},{n:"鶏もも",q:"300g"},{n:"しめじ",q:"1袋"},{n:"えのき",q:"1袋"},{n:"干物",q:"2枚"},{n:"牛乳",q:"1本"},{n:"大根",q:"1/2本"}],
+  10:{papa:true,items:[
+    {n:"鶏もも肉",q:"400g",h:false},
+    {n:"豚ロース薄切り",q:"300g",h:false},
+    {n:"鮭切り身",q:"4枚",h:true},
+    {n:"鯖切り身",q:"2枚",h:false},
+    {n:"じゃがいも",q:"4個",h:true},
+    {n:"玉ねぎ",q:"3個",h:true},
+    {n:"にんじん",q:"2本",h:false},
+    {n:"キャベツ",q:"1/2個",h:true},
+    {n:"もやし",q:"2袋",h:false},
+    {n:"きゅうり",q:"4本",h:false},
+    {n:"えのき茸",q:"2袋",h:false},
+    {n:"豆腐（絹ごし）",q:"2丁",h:false},
+    {n:"トマト缶",q:"1缶",h:false},
+    {n:"コーン缶",q:"1缶",h:false},
+  ]},
+  13:{papa:false,items:[
+    {n:"卵",q:"10個",h:false},
+    {n:"豆腐（絹ごし）",q:"1丁",h:false},
+    {n:"わかめ（乾燥）",q:"1袋",h:false},
+    {n:"きゅうり",q:"2本",h:false},
+  ]},
+  17:{papa:true,items:[
+    {n:"豚バラ肉（薄切り）",q:"400g",h:false},
+    {n:"鶏もも肉",q:"400g",h:false},
+    {n:"タラ切り身",q:"2枚",h:false},
+    {n:"白菜",q:"1/4個",h:true},
+    {n:"じゃがいも",q:"3個",h:true},
+    {n:"ブロッコリー",q:"1個",h:false},
+    {n:"えのき茸",q:"2袋",h:false},
+    {n:"牛乳",q:"1L",h:true},
+    {n:"レモン",q:"1個",h:false},
+  ]},
+  20:{papa:false,items:[
+    {n:"卵",q:"6個",h:false},
+    {n:"豆腐",q:"1丁",h:false},
+    {n:"もやし",q:"1袋",h:false},
+    {n:"ねぎ",q:"1本",h:false},
+  ]},
+  24:{papa:true,items:[
+    {n:"鮭切り身",q:"4枚",h:true},
+    {n:"豚肩ロース（塊）",q:"600g（角煮用）",h:true},
+    {n:"鶏もも肉",q:"400g",h:false},
+    {n:"カジキ切り身",q:"2枚",h:false},
+    {n:"じゃがいも",q:"2個",h:true},
+    {n:"にんじん",q:"2本",h:false},
+    {n:"白菜",q:"1/4個",h:true},
+    {n:"キャベツ",q:"1/4個",h:true},
+    {n:"生クリーム",q:"1パック",h:false},
+    {n:"バター",q:"1箱",h:false},
+  ]},
+  27:{papa:false,items:[
+    {n:"卵",q:"6個",h:false},
+    {n:"豆腐",q:"1丁",h:false},
+    {n:"ねぎ",q:"1本",h:false},
+    {n:"レモン",q:"1個",h:false},
+  ]},
+  31:{papa:true,items:[
+    {n:"鶏もも肉",q:"400g",h:false},
+    {n:"豚バラ肉",q:"300g",h:false},
+    {n:"玉ねぎ",q:"4個",h:true},
+    {n:"にんじん",q:"2本",h:false},
+    {n:"じゃがいも",q:"4個",h:true},
+    {n:"米",q:"5kg（なくなれば）",h:true},
+  ]},
 };
+
 const STAPLES=[{n:"米"},{n:"卵"},{n:"豆腐"},{n:"みそ"},{n:"しょうゆ"},{n:"みりん"},{n:"ごま油"},{n:"片栗粉"},{n:"冷凍うどん"},{n:"キムチ"},{n:"缶詰類"}];
+
 const RC={
-  "肉じゃが":{steps:["じゃがいも・にんじん・たまねぎを一口大に切る","豚こまを炒め野菜を加える","だし・しょうゆ・みりん・砂糖で中火15分煮る","じゃがいもが柔らかくなれば完成"],pt:"2人分：じゃがいも3個・にんじん1本・たまねぎ1個・肉150g"},
-  "鮭の塩焼き":{steps:["鮭に塩をふり10分おく","水気をふいてフライパンで中火3〜4分焼く"],pt:"皮面を先に焼くとパリッと仕上がる"},
-  "豚の生姜焼き":{steps:["しょうゆ・みりん・砂糖・しょうがすりおろしに豚肉を10分漬ける","フライパンで焼き残ったタレをからめる"],pt:"2人分：豚ロース薄切り250g・しょうゆ大2・みりん大2・砂糖小1"},
-  "チキンソテー":{steps:["鶏もも肉に塩コショウ","フライパンで皮目から焼く","しょうゆ・みりん・レモン汁をからめる"],pt:"ポン酢でも代用可"},
-  "麻婆豆腐":{steps:["豆腐を2cm角に切る","豚ひき肉・にんにく・しょうがを炒める","豆板醤・しょうゆ・鶏がらスープを加え豆腐投入","水溶き片栗粉でとろみをつけごま油で仕上げ"],pt:"2人分：豆腐1丁・豚ひき肉100g"},
-  "豚汁＋焼き魚":{steps:["豚バラ・大根・にんじんを一口大に切る","ごま油で炒めだし汁で煮る","みそを溶かして完成","魚は別で焼く"],pt:"豚汁は多めに作って翌朝うどんに転用可"},
-  "牛肉と野菜炒め":{steps:["牛こま・ピーマン・もやしを用意","強火でさっと炒める","しょうゆ・みりん・にんにくで味付け"],pt:"強火で手早く炒めるのがポイント"},
-  "豆腐ハンバーグ":{steps:["豚ひき肉150g・豆腐100g・塩コショウ・パン粉をこねる","小判型に成形してフライパンで両面焼く","ポン酢 or 和風ソースをかける"],pt:"豆腐でかさ増しするとコスト削減＆ふんわり食感"},
-  "カレー":{steps:["野菜・鶏肉を炒める","水を加えて柔らかくなるまで煮る","火を止めカレールーを溶かし再加熱"],pt:"2人×2日分：鶏もも300g・じゃがいも3個・にんじん1本・たまねぎ2個"},
-  "カレーうどん":{steps:["残りカレーを温める","冷凍うどんを解凍","カレーをうどんにかけて完成"],pt:"だし汁で少し伸ばすと絡みやすい"},
-  "魚のムニエル":{steps:["白身魚に塩コショウして小麦粉をまぶす","バターを溶かしたフライパンで両面焼く","レモン汁をかけて完成"],pt:"仕上げのバターとレモンが決め手"},
-  "焼きそば":{steps:["豚こま・キャベツ・もやしを炒める","焼きそば麺を加えほぐしながら炒める","ソースで味付けして完成"],pt:"余り野菜の消費にも最適"},
-  "親子丼":{steps:["鶏もも肉を一口大に切る","めんつゆで鶏肉を煮る","溶き卵を2回に分けて入れ半熟で火を止める","ご飯に盛る"],pt:"2人分：鶏もも200g・卵3個・たまねぎ1/2個"},
-  "豚バラ大根煮物":{steps:["豚バラと大根を一口大に切る","ごま油で豚バラを炒め大根を加える","だし・しょうゆ・みりん・砂糖で20分煮る"],pt:"大根は下茹でしておくと味がしみやすい"},
-  "鶏の唐揚げ":{steps:["鶏もも肉をしょうゆ・みりん・にんにく・しょうがに30分漬ける","片栗粉をまぶして170℃で5〜6分揚げる","二度揚げするとカリッと仕上がる"],pt:"下味をつけたまま冷凍保存できる"},
-  "チャーハン":{steps:["強火で熱したフライパンに溶き卵とご飯を入れる","ハム・ねぎを加える","しょうゆ・塩コショウで味付け"],pt:"強火でパラパラに仕上げるのがコツ"},
-  "サバの味噌煮":{steps:["サバ缶：みそ・みりん・砂糖・しょうがと合わせて5分煮る","生サバ：湯通しし、だし・みりん・みそ・砂糖で15分煮る"],pt:"サバ缶なら5分で完成"},
-  "豚しゃぶサラダ":{steps:["豚ロースを熱湯でさっとゆでる","レタス・トマトを皿に盛る","豚肉をのせてポン酢をかける"],pt:"夏向けの冷製メニュー"},
-  "ミートソースパスタ":{steps:["たまねぎ・にんにくを炒める","豚ひき肉を加えトマト缶・コンソメを加える","20分煮込みパスタと合わせる"],pt:"多めに作って冷凍しておくと翌週も使える"},
-  "鶏の甘辛炒め":{steps:["鶏もも肉を一口大に切る","フライパンで焼き色をつける","しょうゆ・みりん・砂糖・にんにくで甘辛く絡める"],pt:"えのき・ピーマンを加えると彩りもアップ"},
-  "あんかけ豆腐丼":{steps:["豚ひき肉を炒める","だし・しょうゆ・みりんを加えて豆腐を崩し入れる","水溶き片栗粉でとろみをつけご飯にかける"],pt:"豆腐1丁で2人分十分"},
-  "豚キムチ炒め":{steps:["豚こまとキムチをフライパンで炒める","しょうゆ・ごま油で味を調える","ねぎを散らして完成"],pt:"辛さはキムチの量で調整"},
-  "ぶり大根":{steps:["ぶりを湯通しして臭みを取る","大根を下茹でする","だし・しょうゆ・みりん・酒・砂糖でぶりと大根を20分煮る"],pt:"翌日の方が味が染みて美味しい"},
-  "オムライス":{steps:["鶏もも肉とたまねぎを炒めケチャップで味付け","ご飯を加えてケチャップライスを作る","溶き卵を薄く焼いてご飯を包む"],pt:"残りご飯の消費に最適"},
-  "豚汁定食":{steps:["豚バラ・大根・ごぼう・にんじんを一口大に切る","ごま油で炒めだし汁で煮る","みそを溶かして完成。焼き魚は別で焼く"],pt:"豚汁は翌日の昼も使える"},
-  "鶏ときのこのクリーム煮":{steps:["鶏もも肉に塩コショウし焼き色をつける","しめじ・えのきを加えて炒める","牛乳・コンソメを加えて煮て水溶き片栗粉でとろみをつける"],pt:"生クリームの代わりに牛乳でコスト半分"},
+  "鯖の竜田揚げ":{steps:["鯖を一口大に切り、しょうゆ・酒・おろし生姜で15分漬ける","片栗粉をまぶして160℃の油で3〜4分揚げる","仕上げに大根おろしとポン酢を添える"],pt:"2人分：鯖2切れ(200g)、片栗粉大さじ3"},
+  "鮭のホイル焼き":{steps:["鮭・もやし・えのきをアルミホイルに乗せ、バター10gと醤油小さじ1をかける","ホイルを閉じてフライパンに入れ、蓋をして中火10分蒸し焼き","仕上げにレモン汁や大葉を添える"],pt:"2人分：鮭切り身2枚、もやし1/2袋、えのき1袋"},
+  "鶏の照り焼き":{steps:["鶏もも肉に塩こしょうして皮目から中火で焼く","火が通ったら、しょうゆ・みりん・砂糖各大さじ1のタレを絡める","多めに作って冷凍保存も可能"],pt:"2人分：鶏もも肉2枚(400g)"},
+  "鶏肉のトマト煮":{steps:["鶏もも肉を一口大に切り、塩こしょうで下味をつける","玉ねぎを炒め、鶏肉を加えて焼き色をつける","トマト缶・コンソメ・ケチャップを加えて20分煮込む"],pt:"2人分：鶏もも肉1枚(200g)、トマト缶1/2缶"},
+  "豚肉と野菜の炒め物":{steps:["豚バラを一口大に切り、塩こしょうで下味をつける","にんじん・キャベツ・もやしを順に炒める","しょうゆ・みりん・にんにくで味付けして完成"],pt:"2人分：豚バラ150g、もやし1袋、キャベツ2〜3枚"},
+  "麻婆豆腐":{steps:["豆腐は水切りして2cm角に切る","豚ひき肉・にんにく・豆板醤を炒め、スープと豆腐を加えて煮る","水溶き片栗粉でとろみをつけ、ごま油で仕上げる"],pt:"2人分：豆腐1丁(絹ごし)、豚ひき肉100g"},
+  "豚しゃぶサラダ":{steps:["豚肩ロース薄切りをさっと茹でて冷水で締める","野菜と盛り合わせてポン酢・ごま油で和える","冷凍うどんを添えてボリュームUP"],pt:"2人分：豚薄切り200g、きゅうり1本、レタス適量"},
+  "豚の生姜焼き":{steps:["豚ロース薄切りをしょうゆ・みりん・おろし生姜に10分漬ける","フライパンで強火3分焼く","玉ねぎも一緒に炒めると甘みが増して美味しい"],pt:"2人分：豚ロース200g、玉ねぎ1/2個"},
+  "タラのムニエル":{steps:["タラに塩こしょうして小麦粉をまぶす","バターを溶かしたフライパンで両面各3分焼く","仕上げにレモン汁とパセリをかける"],pt:"2人分：タラ切り身2枚"},
+  "豚のみそ炒め":{steps:["豚バラをみそ・みりん・酒・砂糖で10分下味をつける","にんにく・ねぎ・キャベツと一緒に強火で炒める","最後にごま油をひとたらして仕上げる"],pt:"2人分：豚バラ200g、キャベツ2〜3枚"},
+  "鶏肉のカレー炒め":{steps:["鶏もも肉を一口大に切り、カレー粉・塩で下味をつける","ピーマン・玉ねぎと一緒に炒める","仕上げにウスターソース少量で深みを出す"],pt:"2人分：鶏もも肉1枚(200g)、カレー粉小さじ2"},
+  "鮭とじゃがいものグラタン":{steps:["じゃがいもを薄切りにしてレンジ4分加熱する","鮭・じゃがいもをグラタン皿に並べ、市販のホワイトソースをかける","チーズをのせて180℃のオーブンで20分焼く"],pt:"2人分：鮭1切れ、じゃがいも2個、市販ホワイトソース1袋"},
+  "豚バラと白菜の重ね鍋":{steps:["白菜と豚バラを交互に重ねて鍋に詰める","だし・塩少々を加え、蓋をして中火15分蒸す","ポン酢とゆずこしょうでいただく"],pt:"2人分：豚バラ200g、白菜1/4個"},
+  "カジキのソテー":{steps:["カジキに塩こしょうして小麦粉をまぶす","バターで両面各3分ずつ焼く","しょうゆ少々を絡めて仕上げる"],pt:"2人分：カジキ切り身2枚"},
+  "豚の角煮":{steps:["豚バラ塊肉を沸騰したお湯で下茹で30分","しょうゆ・みりん・砂糖・酒・しょうがで1時間煮込む","一晩おくと味がさらにしみて美味しい"],pt:"多めに作って冷蔵保存2〜3日。豚バラ塊400g"},
+  "鶏肉のクリーム煮":{steps:["鶏もも肉・じゃがいも・にんじんを炒める","生クリーム・牛乳・コンソメを加えて20分煮込む","塩こしょうで味を整えて完成"],pt:"2人分：鶏もも肉1枚、じゃがいも2個、生クリーム100ml"},
+  "鮭のちゃんちゃん焼き":{steps:["鮭・キャベツ・玉ねぎをフライパンに並べる","みそ・みりん・砂糖・酒を混ぜたタレをかける","蓋をして中火12分蒸し焼きにする"],pt:"2人分：鮭切り身2枚、キャベツ3枚"},
+  "鶏のから揚げ":{steps:["鶏もも肉をしょうゆ・酒・にんにく・生姜に30分漬ける","片栗粉と小麦粉(1:1)をまぶして170℃で4〜5分揚げる","下味冷凍しておくと当日揚げるだけで楽"],pt:"2人分：鶏もも肉2枚(400g)。多めに作って冷凍OK"},
 };
-const SUN_MENUS=["肉じゃが","鮭の塩焼き","豚の生姜焼き","チキンソテー","麻婆豆腐","豚汁＋焼き魚","豆腐ハンバーグ","カレー","親子丼","鶏の唐揚げ","ミートソースパスタ","サバの味噌煮","ぶり大根","オムライス","豚汁定食"];
+
+const SUN_MENUS=["鶏の照り焼き","鮭のホイル焼き","豚の生姜焼き","麻婆豆腐","鶏肉のトマト煮","豚バラと白菜の重ね鍋","カジキのソテー","鶏のから揚げ","鮭のちゃんちゃん焼き","豚のみそ炒め","タラのムニエル","豚しゃぶサラダ","鶏肉のカレー炒め","鮭とじゃがいものグラタン","豚の角煮"];
 const checkState={};
 
 function openModal(name){
@@ -209,13 +266,16 @@ function closeModal(e){
     document.getElementById("overlay").classList.remove("on");
 }
 function shopListHTML(d){
-  const items=SHOP_ITEMS[d];if(!items)return"";
+  const data=SHOP_ITEMS[d];if(!data)return"";
+  const items=data.items;const isPapa=data.papa;
   const sk=`shop_${d}`;if(!checkState[sk])checkState[sk]={};
   const total=items.length;const done=items.filter((_,i)=>checkState[sk][i]).length;
-  let h=`<div class="slt">買い物リスト</div><div class="check-progress" id="prog-${d}">${done}/${total} 完了</div>`;
+  let h="";
+  if(isPapa)h+=`<div class="shop-papa"><i class="ti ti-users" style="font-size:16px" aria-hidden="true"></i>パパと一緒に行く日</div>`;
+  h+=`<div class="slt">買い物リスト</div><div class="check-progress" id="prog-${d}">${done}/${total} 完了</div>`;
   items.forEach((item,i)=>{
     const ck=checkState[sk][i]?"checked":"";const cc=checkState[sk][i]?"checked":"";
-    h+=`<div class="check-item ${cc}" id="ci-${d}-${i}"><input type="checkbox" id="cb-${d}-${i}" ${ck} onchange="toggleItem(${d},${i})"><label for="cb-${d}-${i}">${item.n}</label><span class="check-qty">${item.q||""}</span></div>`;
+    h+=`<div class="check-item ${cc}" id="ci-${d}-${i}"><input type="checkbox" id="cb-${d}-${i}" ${ck} onchange="toggleItem(${d},${i})"><label for="cb-${d}-${i}">${item.n}${item.h?'<span class="heavy-badge">重め</span>':''}</label><span class="check-qty">${item.q||""}</span></div>`;
   });
   h+=`<div class="staple-section"><div class="staple-label">常備品（切らしたら補充）</div>`;
   const stk=`staple_${d}`;if(!checkState[stk])checkState[stk]={};
@@ -229,8 +289,8 @@ function toggleItem(d,i){
   const sk=`shop_${d}`;if(!checkState[sk])checkState[sk]={};
   const cb=document.getElementById(`cb-${d}-${i}`);checkState[sk][i]=cb.checked;
   document.getElementById(`ci-${d}-${i}`).classList.toggle("checked",cb.checked);
-  const done=SHOP_ITEMS[d].filter((_,j)=>checkState[sk][j]).length;
-  const p=document.getElementById(`prog-${d}`);if(p)p.textContent=`${done}/${SHOP_ITEMS[d].length} 完了`;
+  const done=SHOP_ITEMS[d].items.filter((_,j)=>checkState[sk][j]).length;
+  const p=document.getElementById(`prog-${d}`);if(p)p.textContent=`${done}/${SHOP_ITEMS[d].items.length} 完了`;
 }
 function toggleStaple(d,i){
   const stk=`staple_${d}`;if(!checkState[stk])checkState[stk]={};
@@ -265,6 +325,10 @@ function renderSunday(d){
   if(hasSH){h+=`<div class="dsec" data-group="s${d}" data-tab="shop"><div class="shop-wrap">${shopListHTML(d)}</div></div>`;}
   return h;
 }
+function renderHoliday(){
+  document.getElementById("sun-msg-area").innerHTML="";
+  return`<div class="psec"><div class="pv" style="color:var(--text-secondary)">🎏 ゴールデンウィーク！今日はお休みです。</div></div>`;
+}
 function onSunSel(d){
   const sel=document.getElementById(`sun-sel-${d}`);const rc=document.getElementById(`sun-rc-${d}`);
   if(!sel.value){rc.innerHTML="";return;}
@@ -275,20 +339,23 @@ function onSunSel(d){
   rc.innerHTML=h;
 }
 function openPanel(d){
-  const dow=new Date(2026,5,d).getDay();const isSun=dow===0;
-  document.getElementById("ptitle").textContent=`6月${d}日（${DOW[dow]}）`;
+  const dow=new Date(2026,4,d).getDay();const isSun=dow===0;const isHol=HOL.has(d);
+  document.getElementById("ptitle").textContent=`5月${d}日（${DOW[dow]}）`;
   document.getElementById("sun-msg-area").innerHTML="";
-  document.getElementById("panel-body").innerHTML=isSun?renderSunday(d):renderDinner(d);
+  document.getElementById("panel-body").innerHTML=isHol?renderHoliday():isSun?renderSunday(d):renderDinner(d);
   document.getElementById("pn").classList.add("on");
   document.getElementById("pn").scrollIntoView({behavior:"smooth",block:"nearest"});
 }
+
 const gr=document.getElementById("gr");
 DOW.forEach((d,i)=>{const e=document.createElement("div");e.className="dh"+(i===0?" su":i===6?" sa":"");e.textContent=d;gr.appendChild(e);});
-for(let i=0;i<1;i++){const e=document.createElement("div");e.className="cell emp";gr.appendChild(e);}
-for(let d=1;d<=30;d++){
-  const dow=new Date(2026,5,d).getDay();const cell=document.createElement("div");
-  let cls="cell";if(dow===0)cls+=" csu";if(SH.has(d))cls+=" sh";cell.className=cls;
-  cell.setAttribute("role","button");cell.setAttribute("tabindex","0");cell.setAttribute("aria-label",`6月${d}日`);
+// May 1 = Friday (index 5), so 5 empty cells at start
+for(let i=0;i<5;i++){const e=document.createElement("div");e.className="cell emp";gr.appendChild(e);}
+for(let d=1;d<=31;d++){
+  const dow=new Date(2026,4,d).getDay();const cell=document.createElement("div");
+  const isHol=HOL.has(d);
+  let cls="cell";if(dow===0)cls+=" csu";if(SH.has(d))cls+=" sh";if(isHol)cls+=" hol";cell.className=cls;
+  cell.setAttribute("role","button");cell.setAttribute("tabindex","0");cell.setAttribute("aria-label",`5月${d}日`);
   const dn=document.createElement("div");dn.className="dn";
   dn.innerHTML=`${d}`+(SH.has(d)?'<span class="sp" aria-hidden="true"></span>':'');cell.appendChild(dn);
   const info=D[d];const isSun=dow===0;
@@ -299,6 +366,8 @@ for(let d=1;d<=30;d++){
     const ms=document.createElement("div");ms.className="ms-off";ms.style.color="#993C1D";ms.textContent="お休み";cell.appendChild(ms);
   }else if(dow===6){
     const ms=document.createElement("div");ms.className="ms-off";ms.textContent="お休み";cell.appendChild(ms);
+  }else if(isHol){
+    const ms=document.createElement("div");ms.className="ms-hol";ms.textContent="祝日";cell.appendChild(ms);
   }
   const handler=()=>{document.querySelectorAll(".cell").forEach(c=>c.classList.remove("sel"));cell.classList.add("sel");openPanel(d);};
   cell.addEventListener("click",handler);
